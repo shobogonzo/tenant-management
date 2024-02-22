@@ -1,0 +1,13 @@
+{
+  "name": "shobo-tenants-service",
+  "version": "1.0.0",
+  "description": "Tenants service boilerplate",
+  "author": "Patrick Palmer",
+  "license": "AGPL-3.0-only",
+  "scripts": {
+    "sls": "sls"
+  },
+  "dependencies": {
+    "serverless": "^3.38.0"
+  }
+}

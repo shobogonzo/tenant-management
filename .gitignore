@@ -1,0 +1,11 @@
+# Package directories
+node_modules
+jspm_packages
+
+# Serverless directories
+.serverless
+
+# Misc
+.env
+.env.cfoutputs
+.DS_Store

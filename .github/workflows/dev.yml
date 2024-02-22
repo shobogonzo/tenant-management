@@ -1,0 +1,33 @@
+name: dev
+
+on:
+  push:
+    branches:
+      - 'wip/**'
+
+jobs:
+  deploy:
+    concurrency: dev-environment
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: us-east-1
+          role-to-assume: arn:aws:iam::275316640779:role/GitHubActionsRole
+          role-session-name: GithubActionsSession
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Deploy to dev
+        run: yarn sls deploy --stage dev
