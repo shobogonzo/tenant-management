@@ -1,11 +1,5 @@
 service: ${self:custom.name}-service
-
 frameworkVersion: '3'
-
-custom:
-  name: shobo-tenants
-  region: ${opt:region, self:provider.region}
-  stage: ${opt:stage, self:provider.stage}
 
 provider:
   name: aws
@@ -13,8 +7,57 @@ provider:
   stage: dev
   region: us-east-1
   environment:
-    STAGE: ${self:custom.stage}
+    SERVICE_NAME: ${self:service}
+    LOG_LEVEL: ${self:custom.logLevel.${sls:stage}, self:custom.logLevel.default}
     AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1'
+
+plugins:
+  - serverless-appsync-plugin
+  - serverless-export-env
+  - serverless-manifest-plugin
+  - serverless-iam-roles-per-function
+  - serverless-esbuild
+
+package:
+  individually: true
+
+custom:
+  name: shobo-tenants
+  region: ${opt:region, self:provider.region}
+  stage: ${opt:stage, self:provider.stage}
+  esbuild:
+    minify: true
+    external:
+      - '@aws-sdk/*'
+  manifest:
+    postProcess: ./utils/process-manifest.js
+    disablePostDeployGeneration: true
+    disableOutput: true
+    silent: true
+  logLevel:
+    prod: ERROR
+    default: INFO
+
+appSync: ${file(serverless.appsync-api.yml)}
+
+functions:
+  registerTenant:
+    handler: functions/register-tenant.handler
+    environment:
+      TENANT_TABLE: !Ref TenantTable
+    iamRoleStatements:
+      - Effect: Allow
+        Action: dynamodb:PutItem
+        Resource: !GetAtt TenantTable.Arn
+
+  confirmUserSignup:
+    handler: functions/confirm-user-signup.handler
+    environment:
+      TENANT_TABLE: !Ref TenantTable
+    iamRoleStatements:
+      - Effect: Allow
+        Action: dynamodb:PutItem
+        Resource: !GetAtt TenantTable.Arn
 
 resources:
   Resources:
@@ -36,6 +79,16 @@ resources:
         Schema:
           - Name: email
             Required: true
+        LambdaConfig:
+          PostConfirmation: !GetAtt ConfirmUserSignupLambdaFunction.Arn
+
+    UserPoolInvokeConfirmUserSignupLambdaPermission:
+      Type: AWS::Lambda::Permission
+      Properties:
+        Action: lambda:invokeFunction
+        FunctionName: !Ref ConfirmUserSignupLambdaFunction
+        Principal: cognito-idp.amazonaws.com
+        SourceArn: !GetAtt UserPool.Arn
 
     UserPoolClient:
       Type: AWS::Cognito::UserPoolClient
@@ -46,16 +99,41 @@ resources:
         ExplicitAuthFlows:
           - ALLOW_USER_SRP_AUTH
           - ALLOW_REFRESH_TOKEN_AUTH
+          - ALLOW_USER_PASSWORD_AUTH
         PreventUserExistenceErrors: ENABLED
 
-    TenantsTable:
+    IdentityPool:
+      Type: AWS::Cognito::IdentityPool
+      Properties:
+        IdentityPoolName: ${self:custom.name}-identity-pool-${self:custom.stage}
+        AllowUnauthenticatedIdentities: false
+        CognitoIdentityProviders:
+          - ClientId: !Ref UserPoolClient
+            ProviderName: !GetAtt UserPool.ProviderName
+
+    TenantTable:
       Type: AWS::DynamoDB::Table
       Properties:
-        TableName: ${self:custom.name}
         AttributeDefinitions:
           - AttributeName: PK
+            AttributeType: S
+          - AttributeName: SK
             AttributeType: S
         KeySchema:
           - AttributeName: PK
             KeyType: HASH
+          - AttributeName: SK
+            KeyType: RANGE
         BillingMode: PAY_PER_REQUEST
+
+  Outputs:
+    UserPoolId:
+      Value: !Ref UserPool
+    UserPoolClientId:
+      Value: !Ref UserPoolClient
+    IdentityPoolId:
+      Value: !Ref IdentityPool
+    TenantTable:
+      Value: !Ref TenantTable
+    GraphQlApiUrl:
+      Value: !GetAtt GraphQlApi.GraphQLUrl

@@ -8,4 +8,5 @@ jspm_packages
 # Misc
 .env
 .env.cfoutputs
+*.log
 .DS_Store
