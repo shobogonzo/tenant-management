@@ -17,15 +17,16 @@ const { SERVICE_NAME, TENANT_TABLE } = process.env;
 const logger = new Logger({ serviceName: SERVICE_NAME });
 
 const lambdaHandler = async (event) => {
-  const tenantId = uuid();
+  const { tenantName, adminFirstName, adminLastName, adminEmail } =
+    event.arguments;
+
   const tenant = {
-    id: tenantId,
-    name: event.tenantName,
+    id: uuid(),
+    name: tenantName,
     status: 'ONBOARDING',
   };
   logger.info(tenant);
 
-  const { adminFirstName, adminLastName, adminEmail } = event;
   const adminFirstInitial = adminFirstName.charAt(0);
   const suffix = chance.string({
     length: 6,
@@ -34,14 +35,14 @@ const lambdaHandler = async (event) => {
   let username = `${adminFirstInitial}${adminLastName}-${suffix}`;
   username = username.toLowerCase();
 
-  const adminUser = {
+  const tenantAdmin = {
     username,
     firstName: adminFirstName,
     lastName: adminLastName,
     email: adminEmail,
-    status: 'UNCONFIRMED',
+    status: 'CREATING',
   };
-  logger.info(adminUser);
+  logger.info(tenantAdmin);
 
   await docClient.send(
     new TransactWriteCommand({
@@ -50,8 +51,8 @@ const lambdaHandler = async (event) => {
           Put: {
             TableName: TENANT_TABLE,
             Item: {
-              PK: `TENANT#${tenantId}`,
-              SK: 'DETAILS',
+              PK: `TENANT#${tenant.id}`,
+              SK: `DETAILS#${tenant.name}`,
               ...tenant,
               createdAt: new Date().toJSON(),
             },
@@ -61,9 +62,9 @@ const lambdaHandler = async (event) => {
           Put: {
             TableName: TENANT_TABLE,
             Item: {
-              PK: `TENANT#${tenantId}`,
+              PK: `TENANT#${tenant.id}`,
               SK: `USER#${username}`,
-              ...adminUser,
+              ...tenantAdmin,
               createdAt: new Date().toJSON(),
             },
           },
@@ -72,7 +73,7 @@ const lambdaHandler = async (event) => {
     })
   );
 
-  return { tenant, adminUser };
+  return { tenant, tenantAdmin };
 };
 
 module.exports.handler = middy()

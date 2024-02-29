@@ -28,10 +28,38 @@ const we_invoke_registerTenant = async (
   const handler = require('../../functions/register-tenant.js').handler;
   const context = {};
   const event = {
-    tenantName,
-    adminFirstName,
-    adminLastName,
-    adminEmail,
+    arguments: {
+      tenantName,
+      adminFirstName,
+      adminLastName,
+      adminEmail,
+    },
+  };
+
+  return await handler(event, context);
+};
+
+const we_invoke_createCognitoUser = async (
+  firstName,
+  lastName,
+  email,
+  password,
+  role,
+  username,
+  tenantId
+) => {
+  const handler = require('../../functions/create-cognito-user.js').handler;
+  const context = {};
+  const event = {
+    arguments: {
+      firstName,
+      lastName,
+      email,
+      password,
+      role,
+      username,
+      tenantId,
+    },
   };
 
   return await handler(event, context);
@@ -130,8 +158,9 @@ const a_user_calls_getMyProfile = async (user) => {
 };
 
 module.exports = {
-  we_invoke_registerTenant,
   we_invoke_confirmUserSignup,
+  we_invoke_createCognitoUser,
+  we_invoke_registerTenant,
   a_user_signs_up,
   a_user_calls_getMyProfile,
 };

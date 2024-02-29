@@ -50,6 +50,17 @@ functions:
         Action: dynamodb:PutItem
         Resource: !GetAtt TenantTable.Arn
 
+  createCognitoUser:
+    handler: functions/create-cognito-user.handler
+    environment:
+      TENANT_TABLE: !Ref TenantTable
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - cognito-idp:AdminCreateUser
+          - cognito-idp:AdminAddUserToGroup
+        Resource: !GetAtt UserPool.Arn
+
   confirmUserSignup:
     handler: functions/confirm-user-signup.handler
     environment:
@@ -79,8 +90,23 @@ resources:
         Schema:
           - Name: email
             Required: true
+          - Name: tenantId
+            Mutable: false
+            AttributeDataType: String
         LambdaConfig:
           PostConfirmation: !GetAtt ConfirmUserSignupLambdaFunction.Arn
+
+    SysAdminGroup:
+      Type: AWS::Cognito::UserPoolGroup
+      Properties:
+        UserPoolId: !Ref UserPool
+        GroupName: SYS_ADMIN
+
+    TenantAdminGroup:
+      Type: AWS::Cognito::UserPoolGroup
+      Properties:
+        UserPoolId: !Ref UserPool
+        GroupName: TENANT_ADMIN
 
     UserPoolInvokeConfirmUserSignupLambdaPermission:
       Type: AWS::Lambda::Permission

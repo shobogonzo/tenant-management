@@ -1,19 +1,19 @@
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 const { DynamoDBDocumentClient, GetCommand } = require('@aws-sdk/lib-dynamodb');
 
-const tenant_exists_in_DynamoDB = async (tenantId) => {
+const tenant_exists_in_DynamoDB = async (tenant) => {
   const ddbClient = new DynamoDBClient();
   const docClient = DynamoDBDocumentClient.from(ddbClient);
 
   console.log(
-    `looking for tenant [${tenantId}] in table [${process.env.TENANT_TABLE}]`
+    `looking for tenant [${tenant.id}]: [${tenant.name}] in table [${process.env.TENANT_TABLE}]`
   );
   const resp = await docClient.send(
     new GetCommand({
       TableName: process.env.TENANT_TABLE,
       Key: {
-        PK: `TENANT#${tenantId}`,
-        SK: 'DETAILS',
+        PK: `TENANT#${tenant.id}`,
+        SK: `DETAILS#${tenant.name}`,
       },
     })
   );

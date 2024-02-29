@@ -6,11 +6,11 @@ const chance = require('chance').Chance();
 
 describe('When registerTenant runs', () => {
   let tenant;
-  let adminUser;
+  let tenantAdmin;
 
   afterAll(async () => {
     await teardown.a_tenant(tenant);
-    await teardown.a_tenant_user(adminUser.username, tenant.id);
+    await teardown.a_user(tenantAdmin, tenant.id);
   });
 
   it('The tenant and admin user should be saved in DynamoDB', async () => {
@@ -26,23 +26,23 @@ describe('When registerTenant runs', () => {
       adminEmail
     );
     tenant = result.tenant;
-    adminUser = result.adminUser;
+    tenantAdmin = result.tenantAdmin;
 
-    const ddbTenant = await then.tenant_exists_in_DynamoDB(tenant.id);
+    const ddbTenant = await then.tenant_exists_in_DynamoDB(tenant);
     expect(ddbTenant).toMatchObject({
       name: tenantName,
       status: 'ONBOARDING',
     });
 
     const ddbUser = await then.user_exists_in_DynamoDB(
-      adminUser.username,
+      tenantAdmin.username,
       tenant.id
     );
     expect(ddbUser).toMatchObject({
       firstName: adminFirstName,
       lastName: adminLastName,
       email: adminEmail,
-      status: 'UNCONFIRMED',
+      status: 'CREATING',
     });
   });
 });

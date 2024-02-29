@@ -12,14 +12,14 @@ const a_tenant = async (tenant) => {
       TableName: process.env.TENANT_TABLE,
       Key: {
         PK: `TENANT#${tenant.id}`,
-        SK: 'DETAILS',
+        SK: `DETAILS#${tenant.name}`,
       },
     })
   );
   console.log(`[${tenant.id}] - tenant deleted`);
 };
 
-const a_tenant_user = async (username, tenantId) => {
+const a_user = async (username, tenantId) => {
   await docClient.send(
     new DeleteCommand({
       TableName: process.env.TENANT_TABLE,
@@ -34,5 +34,5 @@ const a_tenant_user = async (username, tenantId) => {
 
 module.exports = {
   a_tenant,
-  a_tenant_user,
+  a_user,
 };
