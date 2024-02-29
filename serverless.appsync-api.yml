@@ -11,6 +11,9 @@ logging:
   retentionInDays: 14
 
 resolvers:
+  Mutation.registerTenant:
+    kind: UNIT
+    dataSource: registerTenant
   Query.getTenant:
     kind: UNIT
     dataSource: tenantTable
@@ -27,3 +30,10 @@ dataSources:
     name: tenantTable
     config:
       tableName: !Ref TenantTable
+
+  registerTenant:
+    type: AWS_LAMBDA
+    description: 'Register tenant'
+    name: registerTenant
+    config:
+      functionName: registerTenant

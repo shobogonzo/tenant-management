@@ -9,11 +9,11 @@ type Query {
 }
 
 type Mutation {
-  createTenant(tenant: TenantInput): Tenant!
+  registerTenant(newTenant: RegisterTenantInput!): Tenant!
 }
 
-input TenantInput {
-  name: String!
+input RegisterTenantInput {
+  tenantName: String!
   adminFirstName: String!
   adminLastName: String!
   adminEmail: AWSEmail!
@@ -33,6 +33,7 @@ enum TenantStatus {
 }
 
 enum UserStatus {
+  CREATING
   UNCONFIRMED
   ACTIVE
   INACTIVE
