@@ -7,7 +7,7 @@ const {
 const chance = require('chance').Chance();
 const fs = require('fs');
 const path = require('path');
-const envPath = path.resolve(__dirname, '..', '..', '.env');
+const envPath = path.resolve(__dirname, '..', '.env');
 require('dotenv').config({ path: envPath });
 
 const { SERVICE_NAME, USER_POOL_ID, USER_POOL_CLIENT_ID } = process.env;
@@ -58,7 +58,7 @@ cognito
     await cognito.send(confirmTestBotUser);
     console.log(`[${email}] - confirmed sign up`);
 
-    const TEST_BOT_PASSWORD = `\nTEST_BOT_PASSWORD=${password}\n`;
+    const TEST_BOT_PASSWORD = `\nTEST_BOT_PASSWORD=${password}`;
     addEnvVariable(TEST_BOT_PASSWORD);
   })
   .catch((err) => console.log(err));

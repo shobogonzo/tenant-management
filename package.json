@@ -7,7 +7,7 @@
   "scripts": {
     "sls": "sls",
     "export-env": "sls export-env -s $STAGE && sls manifest -s $STAGE",
-    "seed-root-tenant": "node tests/lib/seed-root-tenant.js && node tests/lib/seed-test-cognito-user.js",
+    "seed-env": "node utils/seed-root-tenant.js && node utils/seed-dev-cognito-user.js",
     "test:unit": "jest ./tests/test_cases/unit",
     "test:integration": "jest ./tests/test_cases/integration",
     "test:e2e": "jest ./tests/test_cases/e2e"
