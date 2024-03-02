@@ -29,10 +29,12 @@ const we_invoke_registerTenant = async (
   const context = {};
   const event = {
     arguments: {
-      tenantName,
-      adminFirstName,
-      adminLastName,
-      adminEmail,
+      newTenant: {
+        tenantName,
+        adminFirstName,
+        adminLastName,
+        adminEmail,
+      },
     },
   };
 
@@ -95,6 +97,50 @@ const we_invoke_confirmUserSignup = async (
   };
 
   await handler(event, context);
+};
+
+const sysadmin_registers_tenant = async (
+  sysadmin,
+  tenantName,
+  adminFirstName,
+  adminLastName,
+  adminEmail
+) => {
+  const registerTenant = `mutation registerTenant($newTenant: RegisterTenantInput!) {
+    registerTenant(newTenant: $newTenant) {
+      id
+      name
+      status
+      createdAt
+      tenantAdmin {
+        firstName
+        lastName
+        email
+        username
+      }
+    }
+  }`;
+
+  const variables = {
+    newTenant: {
+      tenantName,
+      adminFirstName,
+      adminLastName,
+      adminEmail,
+    },
+  };
+
+  const data = await GraphQL(
+    process.env.API_URL,
+    registerTenant,
+    variables,
+    sysadmin.accessToken
+  );
+  const result = data.registerTenant;
+
+  console.log(`[${data.registerTenant.id}] - tenant registered`);
+
+  return result;
 };
 
 const a_user_signs_up = async (password, firstName, lastName, email) => {
@@ -161,6 +207,7 @@ module.exports = {
   we_invoke_confirmUserSignup,
   we_invoke_createCognitoUser,
   we_invoke_registerTenant,
+  sysadmin_registers_tenant,
   a_user_signs_up,
   a_user_calls_getMyProfile,
 };

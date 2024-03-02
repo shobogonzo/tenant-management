@@ -67,7 +67,9 @@ functions:
       TENANT_TABLE: !Ref TenantTable
     iamRoleStatements:
       - Effect: Allow
-        Action: dynamodb:PutItem
+        Action:
+          - dynamodb:PutItem
+          - dynamodb:UpdateItem
         Resource: !GetAtt TenantTable.Arn
 
 resources:
@@ -95,18 +97,6 @@ resources:
             AttributeDataType: String
         LambdaConfig:
           PostConfirmation: !GetAtt ConfirmUserSignupLambdaFunction.Arn
-
-    SysAdminGroup:
-      Type: AWS::Cognito::UserPoolGroup
-      Properties:
-        UserPoolId: !Ref UserPool
-        GroupName: SYS_ADMIN
-
-    TenantAdminGroup:
-      Type: AWS::Cognito::UserPoolGroup
-      Properties:
-        UserPoolId: !Ref UserPool
-        GroupName: TENANT_ADMIN
 
     UserPoolInvokeConfirmUserSignupLambdaPermission:
       Type: AWS::Lambda::Permission
@@ -137,6 +127,18 @@ resources:
           - ClientId: !Ref UserPoolClient
             ProviderName: !GetAtt UserPool.ProviderName
 
+    SysAdminGroup:
+      Type: AWS::Cognito::UserPoolGroup
+      Properties:
+        UserPoolId: !Ref UserPool
+        GroupName: SYS_ADMIN
+
+    TenantAdminGroup:
+      Type: AWS::Cognito::UserPoolGroup
+      Properties:
+        UserPoolId: !Ref UserPool
+        GroupName: TENANT_ADMIN
+
     TenantTable:
       Type: AWS::DynamoDB::Table
       Properties:
@@ -151,8 +153,12 @@ resources:
           - AttributeName: SK
             KeyType: RANGE
         BillingMode: PAY_PER_REQUEST
+        StreamSpecification:
+          StreamViewType: NEW_AND_OLD_IMAGES
 
   Outputs:
+    ServiceName:
+      Value: ${self:service}
     UserPoolId:
       Value: !Ref UserPool
     UserPoolClientId:

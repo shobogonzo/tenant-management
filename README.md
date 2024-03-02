@@ -6,13 +6,14 @@ Boilerplate API, DynamoDB table, and user pool for a tenant management app
 
 ## Onboarding flow
 
-### Sysadmin user registers tenant in app (tenant name + admin user details)
+### Sysadmin user registers tenant in app
 
 - Save tenant item collection to DynamoDB
   - Tenant status 'Onboarding'
-  - Admin user status 'Creating'
+  - Tenant admin user status 'Creating'
 - On `PreSignUp_AdminCreateUser` event
   - Create tenant admin Cognito account
+  - Tenant admin user status 'Unconfirmed'
 
 ## TODO
 

@@ -7,13 +7,14 @@ authentication:
     defaultAction: ALLOW
     userPoolId: !Ref UserPool
 logging:
-  level: ERROR
+  level: ALL
   retentionInDays: 14
 
 resolvers:
   Mutation.registerTenant:
     kind: UNIT
     dataSource: registerTenant
+    code: resolvers/tenants/register-tenant.js
   Query.getTenant:
     kind: UNIT
     dataSource: tenantTable

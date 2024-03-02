@@ -8,5 +8,8 @@ export function request(ctx) {
 }
 
 export function response(ctx) {
-  return ctx.result;
+  return {
+    ...ctx.result.tenant,
+    tenantAdmin: ctx.result.tenantAdmin,
+  };
 }

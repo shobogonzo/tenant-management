@@ -18,14 +18,17 @@ const logger = new Logger({ serviceName: SERVICE_NAME });
 
 const lambdaHandler = async (event) => {
   const { tenantName, adminFirstName, adminLastName, adminEmail } =
-    event.arguments;
+    event.arguments.newTenant;
+
+  const createdAt = new Date().toJSON();
 
   const tenant = {
     id: uuid(),
     name: tenantName,
     status: 'ONBOARDING',
+    createdAt,
   };
-  logger.info(tenant);
+  logger.info('onboarding tenant', tenant);
 
   const adminFirstInitial = adminFirstName.charAt(0);
   const suffix = chance.string({
@@ -40,9 +43,11 @@ const lambdaHandler = async (event) => {
     firstName: adminFirstName,
     lastName: adminLastName,
     email: adminEmail,
+    role: 'TENANT_ADMIN',
     status: 'CREATING',
+    createdAt,
   };
-  logger.info(tenantAdmin);
+  logger.info('creating tenant admin', tenantAdmin);
 
   await docClient.send(
     new TransactWriteCommand({
@@ -54,7 +59,6 @@ const lambdaHandler = async (event) => {
               PK: `TENANT#${tenant.id}`,
               SK: `DETAILS#${tenant.name}`,
               ...tenant,
-              createdAt: new Date().toJSON(),
             },
           },
         },
@@ -65,7 +69,6 @@ const lambdaHandler = async (event) => {
               PK: `TENANT#${tenant.id}`,
               SK: `USER#${username}`,
               ...tenantAdmin,
-              createdAt: new Date().toJSON(),
             },
           },
         },
@@ -73,7 +76,9 @@ const lambdaHandler = async (event) => {
     })
   );
 
-  return { tenant, tenantAdmin };
+  const result = { tenant, tenantAdmin };
+  logger.info('returning', result);
+  return result;
 };
 
 module.exports.handler = middy()

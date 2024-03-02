@@ -7,20 +7,30 @@ const dynamodb = new DynamoDB({ region: 'us-east-1' });
 const dynamodbClient = DynamoDBDocumentClient.from(dynamodb);
 require('dotenv').config();
 
+const { SERVICE_NAME, TENANT_TABLE } = process.env;
+
 const tenant = {
-  PK: `TENANT#${process.env.SERVICE_NAME}`,
-  SK: `DETAILS#${process.env.SERVICE_NAME}`,
+  PK: `TENANT#${SERVICE_NAME}`,
+  SK: `DETAILS#${SERVICE_NAME}`,
   name: 'Root Tenant',
+  status: 'ACTIVE',
+  createdAt: new Date().toJSON(),
 };
 
 const testbot = {
-  PK: `TENANT#${process.env.SERVICE_NAME}`,
+  PK: `TENANT#${SERVICE_NAME}`,
   SK: 'USER#test-bot',
+  firstName: 'Test',
+  lastName: 'Bot',
+  email: `test-bot@${SERVICE_NAME}.dev`,
+  role: 'SYS_ADMIN',
+  status: 'ACTIVE',
+  createdAt: new Date().toJSON(),
 };
 
 const command = new BatchWriteCommand({
   RequestItems: {
-    [process.env.TENANT_TABLE]: [
+    [TENANT_TABLE]: [
       {
         PutRequest: {
           Item: tenant,

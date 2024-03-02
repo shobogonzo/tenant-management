@@ -1,8 +1,9 @@
 const {
   CognitoIdentityProviderClient,
-  SignUpCommand,
+  AdminAddUserToGroupCommand,
   AdminConfirmSignUpCommand,
   InitiateAuthCommand,
+  SignUpCommand,
 } = require('@aws-sdk/client-cognito-identity-provider');
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 const { DynamoDBDocumentClient, PutCommand } = require('@aws-sdk/lib-dynamodb');
@@ -18,16 +19,14 @@ const a_random_user = () => {
     length: 6,
     pool: 'abcdefghijklmnopqrstuvwxyz',
   });
-  const username = `${firstName.charAt(0)}${lastName}-${suffix}`;
-  const password = chance.string({ length: 10 });
   const email = `${firstName}-${lastName}-${suffix}@test.com`;
+  const password = chance.string({ length: 10 });
 
   return {
     firstName,
     lastName,
-    username,
-    password,
     email,
+    password,
   };
 };
 
@@ -37,7 +36,7 @@ const an_existing_tenant = async (name, status) => {
   console.log(
     `adding tenant [${tenantId}] to table [${process.env.TENANT_TABLE}]`
   );
-  const createdAt = new Date().toISOString();
+  const createdAt = new Date().toJSON();
   await docClient.send(
     new PutCommand({
       TableName: process.env.TENANT_TABLE,
@@ -66,7 +65,7 @@ const an_existing_user = async (role, status, tenantId) => {
     length: 6,
     pool: 'abcdefghijklmnopqrstuvwxyz',
   });
-  const username = `${firstName.charAt(0)}${lastName}-${suffix}`;
+  const username = `${firstName.charAt(0)}${lastName}-${suffix}`.toLowerCase();
   const email = `${firstName}-${lastName}-${suffix}@test.com`;
 
   console.log(
@@ -84,6 +83,7 @@ const an_existing_user = async (role, status, tenantId) => {
         email,
         role,
         status,
+        createdAt: new Date().toJSON(),
       },
     })
   );
@@ -97,19 +97,25 @@ const an_existing_user = async (role, status, tenantId) => {
 };
 
 const an_authenticated_user = async (role) => {
-  const { email, firstName, lastName, username, password } = a_random_user();
-  const tenantId =
-    role === 'SYS_ADMIN' ? process.env.SERVICE_NAME : chance.guid();
-  console.log(`[${username}] - creating user under tenant [${tenantId}]`);
+  const { SERVICE_NAME, USER_POOL_ID, USER_POOL_CLIENT_ID } = process.env;
+  const tenantId = role === 'SYS_ADMIN' ? SERVICE_NAME : chance.guid();
+
+  const { username, firstName, lastName, email } = await an_existing_user(
+    role,
+    'CREATING',
+    tenantId
+  );
+  const password = chance.string({ length: 10 });
+  console.log(
+    `[${username}] - creating [${role}] Cognito user under tenant [${tenantId}]`
+  );
 
   const cognito = new CognitoIdentityProviderClient();
-  const userPoolId = process.env.USER_POOL_ID;
-  const clientId = process.env.USER_POOL_CLIENT_ID;
-
   await cognito.send(
     new SignUpCommand({
-      ClientId: clientId,
+      ClientId: USER_POOL_CLIENT_ID,
       Username: username,
+      MessageAction: 'SUPPRESS',
       Password: password,
       UserAttributes: [
         { Name: 'email', Value: email },
@@ -122,8 +128,17 @@ const an_authenticated_user = async (role) => {
   console.log(`[${email}] - user has signed up [${username}]`);
 
   await cognito.send(
+    new AdminAddUserToGroupCommand({
+      UserPoolId: USER_POOL_ID,
+      Username: username,
+      GroupName: role,
+    })
+  );
+  console.log(`[${email}] - added to ${role} group`);
+
+  await cognito.send(
     new AdminConfirmSignUpCommand({
-      UserPoolId: userPoolId,
+      UserPoolId: USER_POOL_ID,
       Username: username,
     })
   );
@@ -132,7 +147,7 @@ const an_authenticated_user = async (role) => {
   const auth = await cognito.send(
     new InitiateAuthCommand({
       AuthFlow: 'USER_PASSWORD_AUTH',
-      ClientId: clientId,
+      ClientId: USER_POOL_CLIENT_ID,
       AuthParameters: {
         USERNAME: username,
         PASSWORD: password,

@@ -20,6 +20,11 @@ const a_tenant = async (tenant) => {
 };
 
 const a_user = async (username, tenantId) => {
+  if (!username || !tenantId) {
+    throw new Error('username and tenantId required');
+  }
+  console.log(`[${username}] - deleting user from tenant [${tenantId}]`);
+
   await docClient.send(
     new DeleteCommand({
       TableName: process.env.TENANT_TABLE,
@@ -29,7 +34,9 @@ const a_user = async (username, tenantId) => {
       },
     })
   );
-  console.log(`[${username}] - user deleted`);
+  console.log(`[${username}] - user deleted from tenant [${tenantId}]`);
+
+  // TODO remove from cognito
 };
 
 module.exports = {

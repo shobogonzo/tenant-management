@@ -19,6 +19,7 @@ module.exports = async function processManifest(manifestData) {
 
   const dotEnvFile = path.resolve('.env');
   await updateDotEnv(dotEnvFile, {
+    SERVICE_NAME: getOutputValue('ServiceName'),
     API_URL: getOutputValue('GraphQlApiUrl'),
     TENANT_TABLE: getOutputValue('TenantTable'),
     USER_POOL_ID: getOutputValue('UserPoolId'),

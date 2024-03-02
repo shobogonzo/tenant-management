@@ -10,7 +10,7 @@ describe('When registerTenant runs', () => {
 
   afterAll(async () => {
     await teardown.a_tenant(tenant);
-    await teardown.a_user(tenantAdmin, tenant.id);
+    await teardown.a_user(tenantAdmin.username, tenant.id);
   });
 
   it('The tenant and admin user should be saved in DynamoDB', async () => {
@@ -42,6 +42,7 @@ describe('When registerTenant runs', () => {
       firstName: adminFirstName,
       lastName: adminLastName,
       email: adminEmail,
+      role: 'TENANT_ADMIN',
       status: 'CREATING',
     });
   });

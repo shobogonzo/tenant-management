@@ -6,7 +6,7 @@ const tenant_exists_in_DynamoDB = async (tenant) => {
   const docClient = DynamoDBDocumentClient.from(ddbClient);
 
   console.log(
-    `looking for tenant [${tenant.id}]: [${tenant.name}] in table [${process.env.TENANT_TABLE}]`
+    `looking for tenant [${tenant.id}] in table [${process.env.TENANT_TABLE}]`
   );
   const resp = await docClient.send(
     new GetCommand({
@@ -28,7 +28,7 @@ const user_exists_in_DynamoDB = async (username, tenantId) => {
   const docClient = DynamoDBDocumentClient.from(ddbClient);
 
   console.log(
-    `looking for user [${username}] in tenant [${tenantId}] in table [${process.env.TENANT_TABLE}]`
+    `looking for user [${username}] under tenant [${tenantId}] in table [${process.env.TENANT_TABLE}]`
   );
   const resp = await docClient.send(
     new GetCommand({

@@ -3,12 +3,16 @@ export function request(ctx) {
     util.error('Max limit is 25');
   }
 
+  const filter = util.transform.toDynamoDBFilterExpression({
+    SK: { beginsWith: 'DETAILS' },
+  });
+
   return {
     operation: 'Scan',
-    limit: util.dynamodb.toDynamoDB(ctx.args.limit),
-    nextToken: ctx.args.nextToken,
+    limit: ctx.args.limit,
     consistentRead: false,
-    scanIndexForward: false,
+    // exclusiveStartKey: ctx.args.exclusiveStartKey,
+    filter: JSON.parse(filter),
     select: 'ALL_ATTRIBUTES',
   };
 }
@@ -21,6 +25,7 @@ export function response(ctx) {
       return {
         id: tenant.PK.split('#')[1],
         name: tenant.name,
+        status: tenant.status,
         createdAt: tenant.createdAt,
       };
     });

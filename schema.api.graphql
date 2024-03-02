@@ -4,12 +4,12 @@ schema {
 }
 
 type Query {
-  getTenants(nextToken: String): [Tenant]!
-  getTenant(id: String): Tenant
+  getTenants(limit: Int!, nextToken: String): [Tenant]!
+  getTenant(id: String!): Tenant
 }
 
 type Mutation {
-  registerTenant(newTenant: RegisterTenantInput!): Tenant!
+  registerTenant(newTenant: RegisterTenantInput!): TenantRegistrationResponse!
 }
 
 input RegisterTenantInput {
@@ -24,6 +24,21 @@ type Tenant {
   name: String!
   status: TenantStatus!
   createdAt: AWSDateTime!
+}
+
+type User {
+  firstName: String!
+  lastName: String!
+  email: AWSEmail!
+  username: String!
+}
+
+type TenantRegistrationResponse {
+  id: ID!
+  name: String!
+  status: TenantStatus!
+  createdAt: AWSDateTime!
+  tenantAdmin: User!
 }
 
 enum TenantStatus {

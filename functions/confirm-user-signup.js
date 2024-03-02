@@ -54,11 +54,11 @@ const lambdaHandler = async (event) => {
       ExpressionAttributeNames: { '#status': 'status' },
       ExpressionAttributeValues: { ':status': 'ACTIVE' },
       ConditionExpression: 'attribute_exists(PK)',
-      ReturnValues: 'UPDATED_NEW',
     })
   );
+  logger.info(result);
 
-  return result;
+  return event;
 };
 
 module.exports.handler = middy()

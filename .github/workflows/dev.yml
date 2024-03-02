@@ -34,10 +34,15 @@ jobs:
           yarn sls deploy --stage dev-ci
           yarn sls export-env --stage dev-ci
           yarn sls manifest --stage dev-ci
-          node ./tests/lib/seed-root-tenant.js
+
+      - name: Seed root tenant
+        run: node ./tests/lib/seed-root-tenant.js
 
       - name: Run integration tests
         run: yarn jest ./tests/test_cases/integration --silent
+
+      - name: Run e2e tests
+        run: yarn jest ./tests/test_cases/e2e --silent
 
       - name: Destroy temp environment
         run: yarn sls remove --stage dev-ci
