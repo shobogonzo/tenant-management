@@ -1,0 +1,171 @@
+service: ${self:custom.name}-service
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  stage: dev
+  region: us-east-1
+  environment:
+    SERVICE_NAME: ${self:service}
+    LOG_LEVEL: ${self:custom.logLevel.${sls:stage}, self:custom.logLevel.default}
+    AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1'
+
+plugins:
+  - serverless-appsync-plugin
+  - serverless-export-env
+  - serverless-manifest-plugin
+  - serverless-iam-roles-per-function
+  - serverless-esbuild
+
+package:
+  individually: true
+
+custom:
+  name: shobo-tenants
+  region: ${opt:region, self:provider.region}
+  stage: ${opt:stage, self:provider.stage}
+  esbuild:
+    minify: true
+    external:
+      - '@aws-sdk/*'
+  manifest:
+    postProcess: ./utils/process-manifest.js
+    disablePostDeployGeneration: true
+    disableOutput: true
+    silent: true
+  logLevel:
+    prod: ERROR
+    default: INFO
+
+appSync: ${file(serverless.appsync-api.yml)}
+
+functions:
+  registerTenant:
+    handler: functions/register-tenant.handler
+    environment:
+      TENANT_TABLE: !Ref TenantTable
+    iamRoleStatements:
+      - Effect: Allow
+        Action: dynamodb:PutItem
+        Resource: !GetAtt TenantTable.Arn
+
+  createCognitoUser:
+    handler: functions/create-cognito-user.handler
+    environment:
+      TENANT_TABLE: !Ref TenantTable
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - cognito-idp:AdminCreateUser
+          - cognito-idp:AdminAddUserToGroup
+        Resource: !GetAtt UserPool.Arn
+
+  confirmUserSignup:
+    handler: functions/confirm-user-signup.handler
+    environment:
+      TENANT_TABLE: !Ref TenantTable
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:PutItem
+          - dynamodb:UpdateItem
+        Resource: !GetAtt TenantTable.Arn
+
+resources:
+  Resources:
+    UserPool:
+      Type: AWS::Cognito::UserPool
+      Properties:
+        UserPoolName: ${self:custom.name}-user-pool-${self:custom.stage}
+        Policies:
+          PasswordPolicy:
+            MinimumLength: 10
+            RequireLowercase: false
+            RequireNumbers: false
+            RequireSymbols: false
+            RequireUppercase: false
+        AliasAttributes:
+          - email
+        AutoVerifiedAttributes:
+          - email
+        Schema:
+          - Name: email
+            Required: true
+          - Name: tenantId
+            Mutable: false
+            AttributeDataType: String
+        LambdaConfig:
+          PostConfirmation: !GetAtt ConfirmUserSignupLambdaFunction.Arn
+
+    UserPoolInvokeConfirmUserSignupLambdaPermission:
+      Type: AWS::Lambda::Permission
+      Properties:
+        Action: lambda:invokeFunction
+        FunctionName: !Ref ConfirmUserSignupLambdaFunction
+        Principal: cognito-idp.amazonaws.com
+        SourceArn: !GetAtt UserPool.Arn
+
+    UserPoolClient:
+      Type: AWS::Cognito::UserPoolClient
+      Properties:
+        ClientName: ${self:custom.name}-client-${self:custom.stage}
+        GenerateSecret: false
+        UserPoolId: !Ref UserPool
+        ExplicitAuthFlows:
+          - ALLOW_USER_SRP_AUTH
+          - ALLOW_REFRESH_TOKEN_AUTH
+          - ALLOW_USER_PASSWORD_AUTH
+        PreventUserExistenceErrors: ENABLED
+
+    IdentityPool:
+      Type: AWS::Cognito::IdentityPool
+      Properties:
+        IdentityPoolName: ${self:custom.name}-identity-pool-${self:custom.stage}
+        AllowUnauthenticatedIdentities: false
+        CognitoIdentityProviders:
+          - ClientId: !Ref UserPoolClient
+            ProviderName: !GetAtt UserPool.ProviderName
+
+    SysAdminGroup:
+      Type: AWS::Cognito::UserPoolGroup
+      Properties:
+        UserPoolId: !Ref UserPool
+        GroupName: SYS_ADMIN
+
+    TenantAdminGroup:
+      Type: AWS::Cognito::UserPoolGroup
+      Properties:
+        UserPoolId: !Ref UserPool
+        GroupName: TENANT_ADMIN
+
+    TenantTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: PK
+            AttributeType: S
+          - AttributeName: SK
+            AttributeType: S
+        KeySchema:
+          - AttributeName: PK
+            KeyType: HASH
+          - AttributeName: SK
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+        StreamSpecification:
+          StreamViewType: NEW_AND_OLD_IMAGES
+
+  Outputs:
+    ServiceName:
+      Value: ${self:service}
+    UserPoolId:
+      Value: !Ref UserPool
+    UserPoolClientId:
+      Value: !Ref UserPoolClient
+    IdentityPoolId:
+      Value: !Ref IdentityPool
+    TenantTable:
+      Value: !Ref TenantTable
+    GraphQlApiUrl:
+      Value: !GetAtt GraphQlApi.GraphQLUrl

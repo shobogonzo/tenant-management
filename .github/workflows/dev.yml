@@ -1,0 +1,55 @@
+name: dev
+
+on:
+  push:
+    branches:
+      - 'main'
+      - 'wip/**'
+    paths-ignore:
+      - 'LICENSE.md'
+      - 'README.md'
+
+jobs:
+  deploy:
+    concurrency: dev-environment
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: us-east-1
+          role-to-assume: arn:aws:iam::730335618500:role/GitHubActionsRole
+          role-session-name: GithubActionsSession
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Deploy temp environment
+        run: |
+          yarn sls deploy --stage dev-ci
+          yarn sls export-env --stage dev-ci
+          yarn sls manifest --stage dev-ci
+
+      - name: Seed root tenant
+        run: node ./tests/lib/seed-root-tenant.js
+
+      - name: Run integration tests
+        run: yarn jest ./tests/test_cases/integration --silent
+
+      - name: Run e2e tests
+        run: yarn jest ./tests/test_cases/e2e --silent
+
+      - name: Destroy temp environment
+        run: yarn sls remove --stage dev-ci
+
+      - name: Deploy to dev
+        run: yarn sls deploy --stage dev

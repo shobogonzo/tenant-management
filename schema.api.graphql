@@ -1,0 +1,55 @@
+schema {
+  query: Query
+  mutation: Mutation
+}
+
+type Query {
+  getTenants(limit: Int!, nextToken: String): [Tenant]!
+  getTenant(id: String!): Tenant
+}
+
+type Mutation {
+  registerTenant(newTenant: RegisterTenantInput!): TenantRegistrationResponse!
+}
+
+input RegisterTenantInput {
+  tenantName: String!
+  adminFirstName: String!
+  adminLastName: String!
+  adminEmail: AWSEmail!
+}
+
+type Tenant {
+  id: ID!
+  name: String!
+  status: TenantStatus!
+  createdAt: AWSDateTime!
+}
+
+type User {
+  firstName: String!
+  lastName: String!
+  email: AWSEmail!
+  username: String!
+}
+
+type TenantRegistrationResponse {
+  id: ID!
+  name: String!
+  status: TenantStatus!
+  createdAt: AWSDateTime!
+  tenantAdmin: User!
+}
+
+enum TenantStatus {
+  ONBOARDING
+  ACTIVE
+  INACTIVE
+}
+
+enum UserStatus {
+  CREATING
+  UNCONFIRMED
+  ACTIVE
+  INACTIVE
+}

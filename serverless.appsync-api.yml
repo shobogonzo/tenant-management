@@ -1,0 +1,40 @@
+name: ${self:custom.name}-tenants-api-${self:custom.stage}
+schema: schema.api.graphql
+authentication:
+  type: AMAZON_COGNITO_USER_POOLS
+  config:
+    awsRegion: us-east-1
+    defaultAction: ALLOW
+    userPoolId: !Ref UserPool
+logging:
+  level: ALL
+  retentionInDays: 14
+
+resolvers:
+  Mutation.registerTenant:
+    kind: UNIT
+    dataSource: registerTenant
+    code: resolvers/tenants/register-tenant.js
+  Query.getTenant:
+    kind: UNIT
+    dataSource: tenantTable
+    code: resolvers/tenants/get-tenant.js
+  Query.getTenants:
+    kind: UNIT
+    dataSource: tenantTable
+    code: resolvers/tenants/get-tenants.js
+
+dataSources:
+  tenantTable:
+    type: AMAZON_DYNAMODB
+    description: 'Shobo tenants table'
+    name: tenantTable
+    config:
+      tableName: !Ref TenantTable
+
+  registerTenant:
+    type: AWS_LAMBDA
+    description: 'Register tenant'
+    name: registerTenant
+    config:
+      functionName: registerTenant
