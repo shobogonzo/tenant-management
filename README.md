@@ -17,4 +17,3 @@ Boilerplate API, DynamoDB table, and user pool for a tenant management app
 - On `PreSignUp_AdminCreateUser` event
   - Create tenant admin Cognito account
   - Tenant admin user status 'Unconfirmed'
-- On `CustomMessage_AdminCreateUser` send email via SES with custom verification link (https://[appurl]/confirm-email?t=[confirmation_code])
