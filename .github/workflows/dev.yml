@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - 'wip/**'
+    paths-ignore:
+      - 'LICENSE.md'
+      - 'README.md'
 
 jobs:
   deploy:
