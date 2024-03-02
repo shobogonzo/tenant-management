@@ -1,6 +1,12 @@
 name: dev
 
 on:
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - 'LICENSE.md'
+      - 'README.md'
   push:
     branches:
       - 'wip/**'
