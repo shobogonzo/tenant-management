@@ -41,19 +41,10 @@ custom:
 appSync: ${file(serverless.appsync-api.yml)}
 
 functions:
-  registerTenant:
-    handler: functions/register-tenant.handler
-    environment:
-      TENANT_TABLE: !Ref TenantTable
-    iamRoleStatements:
-      - Effect: Allow
-        Action: dynamodb:PutItem
-        Resource: !GetAtt TenantTable.Arn
-
   createCognitoUser:
     handler: functions/create-cognito-user.handler
     environment:
-      TENANT_TABLE: !Ref TenantTable
+      USER_POOL_ID: !Ref UserPool
     iamRoleStatements:
       - Effect: Allow
         Action:
@@ -61,15 +52,22 @@ functions:
           - cognito-idp:AdminAddUserToGroup
         Resource: !GetAtt UserPool.Arn
 
+  registerUserSignup:
+    handler: functions/register-user-signup.handler
+    environment:
+      TENANT_TABLE: !Ref TenantTable
+    iamRoleStatements:
+      - Effect: Allow
+        Action: dynamodb:PutItem
+        Resource: !GetAtt TenantTable.Arn
+
   confirmUserSignup:
     handler: functions/confirm-user-signup.handler
     environment:
       TENANT_TABLE: !Ref TenantTable
     iamRoleStatements:
       - Effect: Allow
-        Action:
-          - dynamodb:PutItem
-          - dynamodb:UpdateItem
+        Action: dynamodb:UpdateItem
         Resource: !GetAtt TenantTable.Arn
 
 resources:
@@ -96,7 +94,16 @@ resources:
             Mutable: false
             AttributeDataType: String
         LambdaConfig:
+          PreSignUp: !GetAtt RegisterUserSignupLambdaFunction.Arn
           PostConfirmation: !GetAtt ConfirmUserSignupLambdaFunction.Arn
+
+    UserPoolInvokeRegisterUserSignupLambdaPermission:
+      Type: AWS::Lambda::Permission
+      Properties:
+        Action: lambda:invokeFunction
+        FunctionName: !Ref RegisterUserSignupLambdaFunction
+        Principal: cognito-idp.amazonaws.com
+        SourceArn: !GetAtt UserPool.Arn
 
     UserPoolInvokeConfirmUserSignupLambdaPermission:
       Type: AWS::Lambda::Permission

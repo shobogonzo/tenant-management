@@ -20,7 +20,7 @@ const a_random_user = () => {
     pool: 'abcdefghijklmnopqrstuvwxyz',
   });
   const email = `${firstName}-${lastName}-${suffix}@test.com`;
-  const password = chance.string({ length: 10 });
+  const password = chance.string({ length: 10, password: true });
 
   return {
     firstName,
@@ -102,7 +102,7 @@ const an_authenticated_user = async (role) => {
 
   const { username, firstName, lastName, email } = await an_existing_user(
     role,
-    'CREATING',
+    'PENDING',
     tenantId
   );
   const password = chance.string({ length: 10 });

@@ -1,13 +1,12 @@
-import { util } from '@aws-appsync/utils';
+import { get } from '@aws-appsync/utils/dynamodb';
 
 export function request(ctx) {
-  return {
-    operation: 'GetItem',
+  return get({
     key: {
-      PK: util.dynamodb.toDynamoDB(`TENANT#${ctx.args.id}`),
+      PK: `TENANT#${ctx.args.id}`,
       SK: 'DETAILS',
     },
-  };
+  });
 }
 
 export function response(ctx) {
