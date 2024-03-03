@@ -1,13 +1,9 @@
 name: dev
 
 on:
-  push:
+  pull_request:
     branches:
-      - 'main'
-      - 'wip/**'
-    paths-ignore:
-      - 'LICENSE.md'
-      - 'README.md'
+    - main
 
 jobs:
   deploy:
@@ -40,7 +36,7 @@ jobs:
           yarn sls manifest --stage dev-ci
 
       - name: Seed root tenant
-        run: node ./tests/lib/seed-root-tenant.js
+        run: node ./utils/seed-root-tenant.js
 
       - name: Run integration tests
         run: yarn jest ./tests/test_cases/integration --silent

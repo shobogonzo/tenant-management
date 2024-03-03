@@ -41,13 +41,13 @@ const we_invoke_registerTenant = async (
   return await handler(event, context);
 };
 
+// TODO refactor args
 const we_invoke_createCognitoUser = async (
   firstName,
   lastName,
   email,
   password,
   role,
-  username,
   tenantId
 ) => {
   const handler = require('../../functions/create-cognito-user.js').handler;
@@ -59,12 +59,42 @@ const we_invoke_createCognitoUser = async (
       email,
       password,
       role,
-      username,
       tenantId,
     },
   };
 
   return await handler(event, context);
+};
+
+const we_invoke_registerUserSignup = async (user, tenantId) => {
+  const { username, firstName, lastName, email } = user;
+  const handler = require('../../functions/register-user-signup.js').handler;
+  const context = {};
+  const event = {
+    version: '1',
+    region: process.env.AWS_REGION,
+    userPoolId: process.env.USER_POOL_ID,
+    userName: username,
+    triggerSource: 'PreSignUp_AdminCreateUser',
+    request: {
+      userAttributes: {
+        sub: username,
+        'cognito:email_alias': email,
+        'cognito:user_status': 'FORCE_CHANGE_PASSWORD',
+        email_verified: 'false',
+        given_name: firstName,
+        family_name: lastName,
+        email: email,
+        'custom:tenantId': tenantId,
+      },
+    },
+    response: {},
+  };
+
+  console.log(
+    `[${user.username}] - registering user signup for tenant [${tenantId}]`
+  );
+  await handler(event, context);
 };
 
 const we_invoke_confirmUserSignup = async (
@@ -86,7 +116,7 @@ const we_invoke_confirmUserSignup = async (
         sub: username,
         'cognito:email_alias': email,
         'cognito:user_status': 'CONFIRMED',
-        email_verified: 'false',
+        email_verified: 'true',
         given_name: firstName,
         family_name: lastName,
         email: email,
@@ -108,15 +138,17 @@ const sysadmin_registers_tenant = async (
 ) => {
   const registerTenant = `mutation registerTenant($newTenant: RegisterTenantInput!) {
     registerTenant(newTenant: $newTenant) {
-      id
-      name
-      status
-      createdAt
+      tenant {
+        id
+        name
+        status
+        createdAt
+      }
       tenantAdmin {
+        username
         firstName
         lastName
         email
-        username
       }
     }
   }`;
@@ -137,8 +169,11 @@ const sysadmin_registers_tenant = async (
     sysadmin.accessToken
   );
   const result = data.registerTenant;
+  if (!result) {
+    throw new Error('Tenant registration failed');
+  }
 
-  console.log(`[${data.registerTenant.id}] - tenant registered`);
+  console.log('registerTenant', result);
 
   return result;
 };
@@ -204,9 +239,10 @@ const a_user_calls_getMyProfile = async (user) => {
 };
 
 module.exports = {
-  we_invoke_confirmUserSignup,
-  we_invoke_createCognitoUser,
   we_invoke_registerTenant,
+  we_invoke_createCognitoUser,
+  we_invoke_registerUserSignup,
+  we_invoke_confirmUserSignup,
   sysadmin_registers_tenant,
   a_user_signs_up,
   a_user_calls_getMyProfile,

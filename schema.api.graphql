@@ -9,7 +9,7 @@ type Query {
 }
 
 type Mutation {
-  registerTenant(newTenant: RegisterTenantInput!): TenantRegistrationResponse!
+  registerTenant(newTenant: RegisterTenantInput!): TenantRegistrationResponse
 }
 
 input RegisterTenantInput {
@@ -34,10 +34,7 @@ type User {
 }
 
 type TenantRegistrationResponse {
-  id: ID!
-  name: String!
-  status: TenantStatus!
-  createdAt: AWSDateTime!
+  tenant: Tenant!
   tenantAdmin: User!
 }
 
@@ -48,8 +45,7 @@ enum TenantStatus {
 }
 
 enum UserStatus {
-  CREATING
-  UNCONFIRMED
+  PENDING
   ACTIVE
   INACTIVE
 }

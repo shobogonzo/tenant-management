@@ -10,11 +10,25 @@ logging:
   level: ALL
   retentionInDays: 14
 
+pipelineFunctions:
+  createTenant:
+    code: resolvers/tenants/create-tenant.js
+    dataSource: tenantTable
+  createCognitoUser:
+    code: resolvers/users/create-cognito-user.js
+    dataSource:
+      type: AWS_LAMBDA
+      config:
+        functionName: createCognitoUser
+
 resolvers:
   Mutation.registerTenant:
-    kind: UNIT
-    dataSource: registerTenant
     code: resolvers/tenants/register-tenant.js
+    dataSource:
+      type: NONE
+    functions:
+      - createTenant
+      - createCognitoUser
   Query.getTenant:
     kind: UNIT
     dataSource: tenantTable
@@ -31,10 +45,3 @@ dataSources:
     name: tenantTable
     config:
       tableName: !Ref TenantTable
-
-  registerTenant:
-    type: AWS_LAMBDA
-    description: 'Register tenant'
-    name: registerTenant
-    config:
-      functionName: registerTenant

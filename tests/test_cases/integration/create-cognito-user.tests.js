@@ -10,7 +10,7 @@ describe('When createCognitoUser runs', () => {
 
   beforeAll(async () => {
     tenant = await given.an_existing_tenant(chance.guid(), chance.company());
-    user = await given.an_existing_user('TENANT_ADMIN', 'CREATING', tenant.id);
+    user = given.a_random_user();
   });
 
   afterAll(async () => {
@@ -18,18 +18,42 @@ describe('When createCognitoUser runs', () => {
     await teardown.a_user(user.username, tenant.id);
   });
 
-  it('The user account should belong to the TENANT_ADMIN group', async () => {
-    const password = chance.string({ length: 10, password: true });
+  it('The user should have tenant ID custom claim', async () => {
     const role = 'TENANT_ADMIN';
-
+    // TODO pull into beforeAll
     const result = await when.we_invoke_createCognitoUser(
       user.firstName,
       user.lastName,
       user.email,
-      password,
+      user.password,
       role,
-      user.username,
       tenant.id
     );
+
+    expect(result).toMatchObject({
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      role,
+      username: expect.stringMatching(
+        new RegExp(
+          `^${user.firstName[0]}${user.lastName.slice(0, 8)}`.toLowerCase()
+        )
+      ),
+      tenantId: tenant.id,
+    });
+
+    const cognitoUser = await then.user_exists_in_Cognito(result.username);
+    user.username = cognitoUser.Username;
+
+    expect(
+      cognitoUser.UserAttributes.some((attr) => {
+        return attr.Name === 'custom:tenantId' && attr.Value === tenant.id;
+      })
+    ).toBeTruthy();
+  });
+
+  it('The user should be assigned to the correct role-based group', async () => {
+    await then.user_belongs_to_CognitoGroup(user.username, 'TENANT_ADMIN');
   });
 });

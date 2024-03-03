@@ -22,22 +22,26 @@ describe('When a sysadmin registers a tenant', () => {
       adminUser.email
     );
 
-    console.log(JSON.stringify(response, null, 2));
-
     tenant = {
-      id: response.id,
-      name: response.name,
-      status: response.status,
-      createdAt: response.createdAt,
+      id: response.tenant.id,
+      name: response.tenant.name,
+      status: response.tenant.status,
+      createdAt: response.tenant.createdAt,
     };
 
     tenantAdmin = response.tenantAdmin;
   });
 
   afterAll(async () => {
-    await teardown.a_tenant(tenant);
-    await teardown.a_user(tenantAdmin.username, tenant.id);
-    await teardown.a_user(sysadmin.username, process.env.SERVICE_NAME);
+    if (tenant?.id) {
+      await teardown.a_tenant(tenant);
+    }
+
+    if (tenantAdmin?.username) {
+      await teardown.a_user(tenantAdmin.username, tenant.id, true);
+    }
+
+    await teardown.a_user(sysadmin.username, process.env.SERVICE_NAME, true);
   });
 
   it('The tenant should be initialized in "Onboarding" status', async () => {
@@ -45,7 +49,7 @@ describe('When a sysadmin registers a tenant', () => {
 
     expect(ddbTenant).toMatchObject({
       PK: `TENANT#${tenant.id}`,
-      SK: `DETAILS#${tenant.name}`,
+      SK: `DETAILS`,
       id: tenant.id,
       name: tenant.name,
       status: 'ONBOARDING',
@@ -55,8 +59,11 @@ describe('When a sysadmin registers a tenant', () => {
     });
   });
 
-  it('The tenant admin user should be initialized in "Creating" status', async () => {
-    const { username, firstName, lastName, email } = tenantAdmin;
+  it('The tenant admin user should be initialized in "Pending" status', async () => {
+    const { firstName, lastName, email, username } = tenantAdmin;
+
+    await then.user_exists_in_Cognito(username, tenant.id);
+    await then.user_belongs_to_CognitoGroup(username, 'TENANT_ADMIN');
 
     const ddbTenantAdmin = await then.user_exists_in_DynamoDB(
       username,
@@ -70,39 +77,12 @@ describe('When a sysadmin registers a tenant', () => {
       firstName,
       lastName,
       email,
-      role: 'TENANT_ADMIN',
-      status: 'CREATING',
+      status: 'PENDING',
       createdAt: expect.stringMatching(
         /\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d(?:\.\d+)?Z?/g
       ),
     });
   });
 
-  describe('When the tenant admin Cognito user has been created', () => {
-    // let tenantAdmin;
-    // beforeAll(async () => {
-    //   tenantAdmin = await when.tenant_admin_created(tenant);
-    // });
-    // it('The tenant admin should be initialized in "Creating" status', async () => {
-    //   const ddbTenantAdmin = await then.user_exists_in_DynamoDB(
-    //     tenantAdmin.username,
-    //     tenant.id
-    //   );
-    //   expect(ddbTenantAdmin).toMatchObject({
-    //     PK: `TENANT_ADMIN#${tenantAdmin.username}`,
-    //     status: 'CREATING',
-    //     createdAt: expect.stringMatching(
-    //       /\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d(?:\.\d+)?Z?/g
-    //     ),
-    //   });
-    // });
-    // it('The tenant admin should be able to login', async () => {
-    //   await when.tenant_admin_logs_in(
-    //     tenantAdmin.username,
-    //     tenantAdmin.password
-    //   );
-    // });
-    // it('The tenant admin should be able to confirm the email', async () => {
-    //   await when.tenant_admin_confirms_
-  });
+  describe('When the tenant admin verifies their email', () => {});
 });

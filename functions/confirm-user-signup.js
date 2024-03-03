@@ -1,29 +1,4 @@
-/*
-    Expected Input
-    https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-identity-pools-working-with-aws-lambda-triggers.html#cognito-user-pools-lambda-trigger-event-parameter-shared
-
-    {
-      version: '1',
-      triggerSource: 'PostConfirmation_ConfirmSignUp',
-      region: 'us-east-1',
-      userPoolId: 'us-east-1_XgzZmqL3b',
-      userName: 'jboone-asdfas',
-      request: {
-        userAttributes: {
-          sub: '3da239a6-1f47-53aa-8fb0-e1b70ec1d439',
-          'cognito:email_alias': 'John-Boone-mrqi@test.com',
-          'cognito:user_status': 'CONFIRMED',
-          email_verified: 'false',
-          firstName: 'John',
-          lastName: 'Boone',
-          email: 'John-Boone-mrqi@test.com'
-          'custom:tenantId': 'asdfasda-asdfasf-asdfas-sdfasfd',
-        }
-      },
-      response: {}
-    }
-*/
-
+// https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-identity-pools-working-with-aws-lambda-triggers.html#cognito-user-pools-lambda-trigger-event-parameter-shared
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 const {
   UpdateCommand,
