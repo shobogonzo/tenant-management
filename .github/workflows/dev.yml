@@ -1,13 +1,9 @@
 name: dev
 
 on:
-  push:
+  pull_request:
     branches:
-      - 'main'
-      - 'wip/**'
-    paths-ignore:
-      - 'LICENSE.md'
-      - 'README.md'
+    - main
 
 jobs:
   deploy:
