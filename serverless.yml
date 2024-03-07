@@ -40,7 +40,7 @@ custom:
   domain: shobogonzo.dev
   region: ${opt:region, self:provider.region}
   stage: ${opt:stage, self:provider.stage}
-  serviceRoleArn: ${ssm:/${self:service}/${self:custom.stage}/serviceRoleArn}
+  serviceRoleArn: ${ssm:/${self:service}/${param:ssm-stage, sls:stage}/serviceRoleArn}
   esbuild:
     minify: true
     external:
@@ -193,8 +193,6 @@ resources:
           Enabled: true
           AttributeName: expireAt
         BillingMode: PAY_PER_REQUEST
-        StreamSpecification:
-          StreamViewType: NEW_AND_OLD_IMAGES
 
   Outputs:
     ServiceName:
