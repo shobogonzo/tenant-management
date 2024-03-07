@@ -33,7 +33,7 @@ const lambdaHandler = async (event, context) => {
         TableName: TENANT_TABLE,
         Item: {
           PK: `CONFIRMATION#${token}`,
-          SK: `TENANT#${tenantId}`,
+          SK: `TENANT#${tenantId}#USER#${event.userName}`,
           username: event.userName,
           userPoolId: event.userPoolId,
           createdAt: new Date().toISOString(),

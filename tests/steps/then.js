@@ -79,16 +79,20 @@ const user_belongs_to_CognitoGroup = async (username, group) => {
   return resp;
 };
 
-const user_confirmation_exists_in_DynamoDB = async (token, tenantId) => {
+const user_confirmation_exists_in_DynamoDB = async (
+  token,
+  username,
+  tenantId
+) => {
   console.log(
-    `looking for user confirmation [${token}] for tenant [${tenantId}]`
+    `looking for user confirmation [${token}] for user [${username}]`
   );
   const resp = await docClient.send(
     new GetCommand({
       TableName: TENANT_TABLE,
       Key: {
         PK: `CONFIRMATION#${token}`,
-        SK: `TENANT#${tenantId}`,
+        SK: `TENANT#${tenantId}#USER#${username}`,
       },
     })
   );

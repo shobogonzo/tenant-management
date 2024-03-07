@@ -29,6 +29,7 @@ describe('When sendConfirmationEmail runs', () => {
   it('The confirmation token should be saved in DynamoDB', async () => {
     const confirmation = await then.user_confirmation_exists_in_DynamoDB(
       token,
+      user.username,
       tenant.id
     );
     expect(confirmation).toBeTruthy();
@@ -41,7 +42,7 @@ describe('When sendConfirmationEmail runs', () => {
 
     expect(confirmation).toMatchObject({
       PK: `CONFIRMATION#${token}`,
-      SK: `TENANT#${tenant.id}`,
+      SK: `TENANT#${tenant.id}#USER#${user.username}`,
       username: user.username,
       userPoolId: process.env.USER_POOL_ID,
     });
