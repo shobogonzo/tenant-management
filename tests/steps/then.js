@@ -79,9 +79,29 @@ const user_belongs_to_CognitoGroup = async (username, group) => {
   return resp;
 };
 
+const user_confirmation_exists_in_DynamoDB = async (token, tenantId) => {
+  console.log(
+    `looking for user confirmation [${token}] for tenant [${tenantId}]`
+  );
+  const resp = await docClient.send(
+    new GetCommand({
+      TableName: TENANT_TABLE,
+      Key: {
+        PK: `CONFIRMATION#${token}`,
+        SK: `TENANT#${tenantId}`,
+      },
+    })
+  );
+
+  expect(resp.Item).toBeTruthy();
+
+  return resp.Item;
+};
+
 module.exports = {
   tenant_exists_in_DynamoDB,
   user_exists_in_DynamoDB,
   user_exists_in_Cognito,
   user_belongs_to_CognitoGroup,
+  user_confirmation_exists_in_DynamoDB,
 };

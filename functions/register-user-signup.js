@@ -56,7 +56,6 @@ const lambdaHandler = async (event) => {
         status: 'PENDING',
         createdAt: new Date().toISOString(),
       },
-      ConditionExpression: 'attribute_not_exists(PK)',
     })
   );
   logger.info(result);

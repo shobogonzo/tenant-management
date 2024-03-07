@@ -3,7 +3,7 @@ name: dev
 on:
   pull_request:
     branches:
-    - main
+      - main
 
 jobs:
   deploy:
@@ -31,8 +31,8 @@ jobs:
 
       - name: Deploy temp environment
         run: |
-          yarn sls deploy --stage dev-ci
-          yarn sls export-env --stage dev-ci
+          yarn sls deploy --stage dev-ci --param="ssm-stage=dev"
+          yarn sls export-env --stage dev-ci --param="ssm-stage=dev"
           yarn sls manifest --stage dev-ci
 
       - name: Seed root tenant
