@@ -6,8 +6,9 @@
   "license": "AGPL-3.0-only",
   "scripts": {
     "sls": "sls",
-    "export-env": "sls export-env -s $STAGE && sls manifest -s $STAGE",
-    "seed-env": "node utils/seed-root-tenant.js && node utils/seed-dev-cognito-user.js",
+    "export-env": "sls export-env --overwrite && sls manifest",
+    "seed-env": "node utils/seed-root-tenant.js && node utils/seed-root-user.js",
+    "bootstrap": "yarn export-env && yarn seed-env",
     "test:unit": "jest ./tests/test_cases/unit",
     "test:integration": "jest ./tests/test_cases/integration",
     "test:e2e": "jest ./tests/test_cases/e2e"
@@ -15,13 +16,16 @@
   "dependencies": {
     "@aws-lambda-powertools/logger": "^1.18.1",
     "@middy/core": "^4.7.0",
+    "@middy/sts": "^4.7.0",
     "lodash": "^4.17.21",
-    "uuid": "^9.0.1"
+    "ulid": "^2.3.0"
   },
   "devDependencies": {
     "@aws-appsync/utils": "^1.7.0",
     "@aws-sdk/client-cognito-identity-provider": "^3.515.0",
     "@aws-sdk/client-dynamodb": "^3.518.0",
+    "@aws-sdk/client-ses": "^3.525.0",
+    "@aws-sdk/client-sts": "^3.525.0",
     "@aws-sdk/lib-dynamodb": "^3.518.0",
     "aws-crt": "^1.21.1",
     "axios": "^1.6.7",

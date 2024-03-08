@@ -15,7 +15,7 @@ describe('When createCognitoUser runs', () => {
 
   afterAll(async () => {
     await teardown.a_tenant(tenant);
-    await teardown.a_user(user.username, tenant.id);
+    await teardown.a_user(user.username, tenant.id, true);
   });
 
   it('The user should have tenant ID custom claim', async () => {

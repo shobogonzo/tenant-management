@@ -10,9 +10,10 @@ const path = require('path');
 const envPath = path.resolve(__dirname, '..', '.env');
 require('dotenv').config({ path: envPath });
 
-const { SERVICE_NAME, USER_POOL_ID, USER_POOL_CLIENT_ID } = process.env;
+const { SERVICE_NAME, ROOT_DOMAIN, USER_POOL_ID, USER_POOL_CLIENT_ID } =
+  process.env;
 const username = 'test-bot';
-const email = `test-bot@${SERVICE_NAME}.dev`;
+const email = `test-bot@${ROOT_DOMAIN}`;
 console.log(
   `[${username}] - creating ['SYS_ADMIN'] user under tenant [${SERVICE_NAME}]`
 );

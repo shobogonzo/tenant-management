@@ -6,25 +6,41 @@ provider:
   runtime: nodejs20.x
   stage: dev
   region: us-east-1
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action: sts:AssumeRole
+          Resource: ${self:custom.serviceRoleArn}
+        - Effect: Allow
+          Action: ssm:GetParameters*
+          Resource:
+            - !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${self:service}/${param:ssm-stage, sls:stage}
   environment:
     SERVICE_NAME: ${self:service}
+    SERVICE_ROLE_ARN: ${self:custom.serviceRoleArn}
+    ROOT_DOMAIN: ${self:custom.domain}
     LOG_LEVEL: ${self:custom.logLevel.${sls:stage}, self:custom.logLevel.default}
+    POWERTOOLS_LOGGER_SAMPLE_RATE: 0.1
+    POWERTOOLS_LOGGER_LOG_EVENT: true
     AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1'
 
 plugins:
   - serverless-appsync-plugin
-  - serverless-export-env
-  - serverless-manifest-plugin
-  - serverless-iam-roles-per-function
   - serverless-esbuild
+  - serverless-export-env
+  - serverless-iam-roles-per-function
+  - serverless-manifest-plugin
 
 package:
   individually: true
 
 custom:
   name: shobo-tenants
+  domain: shobogonzo.dev
   region: ${opt:region, self:provider.region}
   stage: ${opt:stage, self:provider.stage}
+  serviceRoleArn: ${ssm:/${self:service}/${param:ssm-stage, sls:stage}/serviceRoleArn}
   esbuild:
     minify: true
     external:
@@ -61,6 +77,11 @@ functions:
         Action: dynamodb:PutItem
         Resource: !GetAtt TenantTable.Arn
 
+  sendConfirmationEmail:
+    handler: functions/send-confirmation-email.handler
+    environment:
+      TENANT_TABLE: !Ref TenantTable
+
   confirmUserSignup:
     handler: functions/confirm-user-signup.handler
     environment:
@@ -95,6 +116,7 @@ resources:
             AttributeDataType: String
         LambdaConfig:
           PreSignUp: !GetAtt RegisterUserSignupLambdaFunction.Arn
+          CustomMessage: !GetAtt SendConfirmationEmailLambdaFunction.Arn
           PostConfirmation: !GetAtt ConfirmUserSignupLambdaFunction.Arn
 
     UserPoolInvokeRegisterUserSignupLambdaPermission:
@@ -102,6 +124,14 @@ resources:
       Properties:
         Action: lambda:invokeFunction
         FunctionName: !Ref RegisterUserSignupLambdaFunction
+        Principal: cognito-idp.amazonaws.com
+        SourceArn: !GetAtt UserPool.Arn
+
+    UserPoolInvokeSendConfirmationEmailLambdaPermission:
+      Type: AWS::Lambda::Permission
+      Properties:
+        Action: lambda:invokeFunction
+        FunctionName: !Ref SendConfirmationEmailLambdaFunction
         Principal: cognito-idp.amazonaws.com
         SourceArn: !GetAtt UserPool.Arn
 
@@ -159,9 +189,10 @@ resources:
             KeyType: HASH
           - AttributeName: SK
             KeyType: RANGE
+        TimeToLiveSpecification:
+          Enabled: true
+          AttributeName: expireAt
         BillingMode: PAY_PER_REQUEST
-        StreamSpecification:
-          StreamViewType: NEW_AND_OLD_IMAGES
 
   Outputs:
     ServiceName:
@@ -170,8 +201,6 @@ resources:
       Value: !Ref UserPool
     UserPoolClientId:
       Value: !Ref UserPoolClient
-    IdentityPoolId:
-      Value: !Ref IdentityPool
     TenantTable:
       Value: !Ref TenantTable
     GraphQlApiUrl:

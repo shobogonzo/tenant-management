@@ -7,7 +7,7 @@ const dynamodb = new DynamoDB({ region: 'us-east-1' });
 const dynamodbClient = DynamoDBDocumentClient.from(dynamodb);
 require('dotenv').config();
 
-const { SERVICE_NAME, TENANT_TABLE } = process.env;
+const { SERVICE_NAME, ROOT_DOMAIN, TENANT_TABLE } = process.env;
 
 const tenant = {
   PK: `TENANT#${SERVICE_NAME}`,
@@ -22,7 +22,7 @@ const testbot = {
   SK: 'USER#test-bot',
   firstName: 'Test',
   lastName: 'Bot',
-  email: `test-bot@${SERVICE_NAME}.dev`,
+  email: `test-bot@${ROOT_DOMAIN}`,
   role: 'SYS_ADMIN',
   status: 'ACTIVE',
   createdAt: new Date().toJSON(),

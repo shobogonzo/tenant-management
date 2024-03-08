@@ -92,9 +92,38 @@ const we_invoke_registerUserSignup = async (user, tenantId) => {
   };
 
   console.log(
-    `[${user.username}] - registering user signup for tenant [${tenantId}]`
+    `[${username}] - registering user signup for tenant [${tenantId}]`
   );
-  await handler(event, context);
+  return await handler(event, context);
+};
+
+const we_invoke_sendConfirmationEmail = async (user, tenantId) => {
+  const { username, firstName, lastName, email } = user;
+  const handler = require('../../functions/send-confirmation-email.js').handler;
+  const context = {};
+  const event = {
+    version: '1',
+    region: process.env.AWS_REGION,
+    userPoolId: process.env.USER_POOL_ID,
+    userName: username,
+    triggerSource: 'CustomMessage_AdminCreateUser',
+    request: {
+      userAttributes: {
+        sub: username,
+        'cognito:email_alias': email,
+        'cognito:user_status': 'FORCE_CHANGE_PASSWORD',
+        email_verified: 'false',
+        given_name: firstName,
+        family_name: lastName,
+        email: email,
+        'custom:tenantId': tenantId,
+      },
+    },
+    response: {},
+  };
+
+  console.log(`[${username}] - sending confirmation email`);
+  return await handler(event, context);
 };
 
 const we_invoke_confirmUserSignup = async (
@@ -126,7 +155,7 @@ const we_invoke_confirmUserSignup = async (
     response: {},
   };
 
-  await handler(event, context);
+  return await handler(event, context);
 };
 
 const sysadmin_registers_tenant = async (
@@ -178,72 +207,11 @@ const sysadmin_registers_tenant = async (
   return result;
 };
 
-const a_user_signs_up = async (password, firstName, lastName, email) => {
-  const cognitoClient = new CognitoIdentityProviderClient();
-  const userPoolId = process.env.USER_POOL_ID;
-  const clientId = process.env.USER_POOL_CLIENT_ID;
-
-  const suffix = chance.string({
-    length: 6,
-    pool: 'abcdefghijklmnopqrstuvwxyz',
-  });
-  const username = `${firstName.charAt(0)}${lastName}-${suffix}`.toLowerCase();
-
-  await cognitoClient.send(
-    new SignUpCommand({
-      ClientId: clientId,
-      Username: username,
-      Password: password,
-      UserAttributes: [
-        { Name: 'email', Value: email },
-        { Name: 'given_name', Value: firstName },
-        { Name: 'family_name', Value: lastName },
-      ],
-    })
-  );
-  console.log(`[${email}] - user has signed up [${username}]`);
-
-  await cognitoClient.send(
-    new AdminConfirmSignUpCommand({
-      UserPoolId: userPoolId,
-      Username: username,
-    })
-  );
-  console.log(`[${email}] - confirmed sign up [${username}]`);
-
-  return {
-    username,
-    firstName,
-    lastName,
-    email,
-  };
-};
-
-const a_user_calls_getMyProfile = async (user) => {
-  const getMyProfile = `query getMyProfile {
-    getMyProfile {
-      ... myProfileFields
-    }
-  }`;
-
-  const data = await GraphQL(
-    process.env.API_URL,
-    getMyProfile,
-    {},
-    user.accessToken
-  );
-
-  const profile = data.getMyProfile;
-  console.log(`[${user.username}] - fetched profile`);
-  return profile;
-};
-
 module.exports = {
   we_invoke_registerTenant,
   we_invoke_createCognitoUser,
   we_invoke_registerUserSignup,
+  we_invoke_sendConfirmationEmail,
   we_invoke_confirmUserSignup,
   sysadmin_registers_tenant,
-  a_user_signs_up,
-  a_user_calls_getMyProfile,
 };

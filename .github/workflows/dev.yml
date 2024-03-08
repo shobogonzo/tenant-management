@@ -3,7 +3,7 @@ name: dev
 on:
   pull_request:
     branches:
-    - main
+      - main
 
 jobs:
   deploy:
@@ -31,9 +31,9 @@ jobs:
 
       - name: Deploy temp environment
         run: |
-          yarn sls deploy --stage dev-ci
-          yarn sls export-env --stage dev-ci
-          yarn sls manifest --stage dev-ci
+          npx sls deploy --stage dev-ci --param="ssm-stage=dev"
+          npx sls export-env --stage dev-ci --param="ssm-stage=dev"
+          npx sls manifest --stage dev-ci --param="ssm-stage=dev"
 
       - name: Seed root tenant
         run: node ./utils/seed-root-tenant.js
@@ -45,7 +45,7 @@ jobs:
         run: yarn jest ./tests/test_cases/e2e --silent
 
       - name: Destroy temp environment
-        run: yarn sls remove --stage dev-ci
+        run: yarn sls remove --stage dev-ci --param="ssm-stage=dev"
 
       - name: Deploy to dev
         run: yarn sls deploy --stage dev
