@@ -45,7 +45,7 @@ jobs:
         run: yarn jest ./tests/test_cases/e2e --silent
 
       - name: Destroy temp environment
-        run: yarn sls remove --stage dev-ci
+        run: yarn sls remove --stage dev-ci --param="ssm-stage=dev"
 
       - name: Deploy to dev
         run: yarn sls deploy --stage dev
