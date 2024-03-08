@@ -31,9 +31,9 @@ jobs:
 
       - name: Deploy temp environment
         run: |
-          yarn sls deploy --stage dev-ci --param='"ssm-stage=dev"'
-          yarn sls export-env --stage dev-ci --param='"ssm-stage=dev"'
-          yarn sls manifest --stage dev-ci --param='"ssm-stage=dev"'
+          yarn sls deploy --stage dev-ci --param='ssm-stage=dev'
+          yarn sls export-env --stage dev-ci --param='ssm-stage=dev'
+          yarn sls manifest --stage dev-ci --param='ssm-stage=dev'
 
       - name: Seed root tenant
         run: node ./utils/seed-root-tenant.js
