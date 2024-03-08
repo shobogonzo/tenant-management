@@ -40,8 +40,7 @@ custom:
   domain: shobogonzo.dev
   region: ${opt:region, self:provider.region}
   stage: ${opt:stage, self:provider.stage}
-  serviceRoleArn: ${ssm:/shobo-tenants-service/dev/serviceRoleArn}
-  # serviceRoleArn: ${ssm:/${self:service}/${param:ssm-stage, sls:stage}/serviceRoleArn}
+  serviceRoleArn: ${ssm:/${self:service}/${param:ssm-stage, sls:stage}/serviceRoleArn}
   esbuild:
     minify: true
     external:
