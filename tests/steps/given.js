@@ -1,9 +1,9 @@
 const {
   CognitoIdentityProviderClient,
   AdminAddUserToGroupCommand,
-  AdminConfirmSignUpCommand,
   InitiateAuthCommand,
-  SignUpCommand,
+  AdminCreateUserCommand,
+  RespondToAuthChallengeCommand,
 } = require('@aws-sdk/client-cognito-identity-provider');
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 const { DynamoDBDocumentClient, PutCommand } = require('@aws-sdk/lib-dynamodb');
@@ -42,7 +42,7 @@ const an_existing_tenant = async (name, status) => {
       TableName: process.env.TENANT_TABLE,
       Item: {
         PK: `TENANT#${tenantId}`,
-        SK: `DETAILS#${name}`,
+        SK: `DETAILS`,
         name,
         status,
         createdAt,
@@ -105,27 +105,30 @@ const an_authenticated_user = async (role) => {
     'PENDING',
     tenantId
   );
-  const password = chance.string({ length: 10 });
+  const tmpPassword = chance.string({ length: 10, password: true });
   console.log(
     `[${username}] - creating [${role}] Cognito user under tenant [${tenantId}]`
   );
 
   const cognito = new CognitoIdentityProviderClient();
   await cognito.send(
-    new SignUpCommand({
+    new AdminCreateUserCommand({
+      UserPoolId: USER_POOL_ID,
       ClientId: USER_POOL_CLIENT_ID,
       Username: username,
       MessageAction: 'SUPPRESS',
-      Password: password,
+      TemporaryPassword: tmpPassword,
       UserAttributes: [
         { Name: 'email', Value: email },
         { Name: 'given_name', Value: firstName },
         { Name: 'family_name', Value: lastName },
         { Name: 'custom:tenantId', Value: tenantId },
+        { Name: 'email_verified', Value: 'true' },
       ],
+      ClientMetadata: { role },
     })
   );
-  console.log(`[${email}] - user has signed up [${username}]`);
+  console.log(`[${username}] - user has signed up [${email}]`);
 
   await cognito.send(
     new AdminAddUserToGroupCommand({
@@ -134,15 +137,31 @@ const an_authenticated_user = async (role) => {
       GroupName: role,
     })
   );
-  console.log(`[${email}] - added to ${role} group`);
+  console.log(`[${username}] - added to ${role} group`);
 
-  await cognito.send(
-    new AdminConfirmSignUpCommand({
-      UserPoolId: USER_POOL_ID,
-      Username: username,
+  const initAuth = await cognito.send(
+    new InitiateAuthCommand({
+      AuthFlow: 'USER_PASSWORD_AUTH',
+      ClientId: USER_POOL_CLIENT_ID,
+      AuthParameters: {
+        USERNAME: username,
+        PASSWORD: tmpPassword,
+      },
     })
   );
-  console.log(`[${email}] - confirmed sign up`);
+
+  const newPassword = chance.string({ length: 10, password: true });
+  await cognito.send(
+    new RespondToAuthChallengeCommand({
+      ClientId: USER_POOL_CLIENT_ID,
+      ChallengeName: 'NEW_PASSWORD_REQUIRED',
+      Session: initAuth.Session,
+      ChallengeResponses: {
+        USERNAME: username,
+        NEW_PASSWORD: newPassword,
+      },
+    })
+  );
 
   const auth = await cognito.send(
     new InitiateAuthCommand({
@@ -150,11 +169,11 @@ const an_authenticated_user = async (role) => {
       ClientId: USER_POOL_CLIENT_ID,
       AuthParameters: {
         USERNAME: username,
-        PASSWORD: password,
+        PASSWORD: newPassword,
       },
     })
   );
-  console.log(`$[${email}] - signed in`);
+  console.log(`$[${username}] - signed in`);
 
   return {
     username,

@@ -1,5 +1,9 @@
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
-const { DynamoDBDocumentClient, GetCommand } = require('@aws-sdk/lib-dynamodb');
+const {
+  DynamoDBDocumentClient,
+  GetCommand,
+  ScanCommand,
+} = require('@aws-sdk/lib-dynamodb');
 const {
   AdminGetUserCommand,
   CognitoIdentityProviderClient,
@@ -79,27 +83,23 @@ const user_belongs_to_CognitoGroup = async (username, group) => {
   return resp;
 };
 
-const user_confirmation_exists_in_DynamoDB = async (
-  token,
-  username,
-  tenantId
-) => {
+const user_confirmation_exists_in_DynamoDB = async (username, tenantId) => {
   console.log(
-    `looking for user confirmation [${token}] for user [${username}]`
+    `looking for confirmation for user [${username}] under tenant [${tenantId}]`
   );
   const resp = await docClient.send(
-    new GetCommand({
+    new ScanCommand({
       TableName: TENANT_TABLE,
-      Key: {
-        PK: `CONFIRMATION#${token}`,
-        SK: `TENANT#${tenantId}#USER#${username}`,
+      FilterExpression: 'SK = :sk',
+      ExpressionAttributeValues: {
+        ':sk': `TENANT#${tenantId}#USER#${username}`,
       },
     })
   );
 
-  expect(resp.Item).toBeTruthy();
+  expect(resp.Items[0]).toBeTruthy();
 
-  return resp.Item;
+  return resp.Items[0];
 };
 
 module.exports = {

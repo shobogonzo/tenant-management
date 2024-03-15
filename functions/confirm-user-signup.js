@@ -21,19 +21,30 @@ const lambdaHandler = async (event) => {
   }
 
   const tenantId = event.request.userAttributes['custom:tenantId'];
-  const result = await docClient.send(
-    new UpdateCommand({
-      TableName: TENANT_TABLE,
-      Key: { PK: `TENANT#${tenantId}`, SK: `USER#${event.userName}` },
-      UpdateExpression: 'set #status = :status',
-      ExpressionAttributeNames: { '#status': 'status' },
-      ExpressionAttributeValues: { ':status': 'ACTIVE' },
-      ConditionExpression: 'attribute_exists(PK)',
-    })
-  );
-  logger.info(result);
+  const username = event.userName;
+  logger.info(`[${tenantId}] - activating user ${username}`);
 
-  return event;
+  try {
+    const result = await docClient.send(
+      new UpdateCommand({
+        TableName: TENANT_TABLE,
+        Key: {
+          PK: `TENANT#${tenantId}`,
+          SK: `USER#${username}`,
+        },
+        UpdateExpression: 'set #status = :status',
+        ExpressionAttributeNames: { '#status': 'status' },
+        ExpressionAttributeValues: { ':status': 'ACTIVE' },
+        ConditionExpression: 'attribute_exists(PK)',
+      })
+    );
+    logger.info(result);
+  } catch (error) {
+    logger.critical(error);
+    throw error;
+  } finally {
+    return event;
+  }
 };
 
 module.exports.handler = middy()

@@ -1,22 +1,22 @@
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
+const { PutCommand, DynamoDBDocumentClient } = require('@aws-sdk/lib-dynamodb');
+const client = new DynamoDBClient();
+const docClient = DynamoDBDocumentClient.from(client);
 const middy = require('@middy/core');
-const sts = require('@middy/sts');
 const {
   Logger,
   injectLambdaContext,
 } = require('@aws-lambda-powertools/logger');
-const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
-const { PutCommand, DynamoDBDocumentClient } = require('@aws-sdk/lib-dynamodb');
-const { SESClient, SendEmailCommand } = require('@aws-sdk/client-ses');
 const { ulid } = require('ulid');
 
-const { SERVICE_NAME, ROOT_DOMAIN, SERVICE_ROLE_ARN, TENANT_TABLE } =
-  process.env;
+const { SERVICE_NAME, ROOT_DOMAIN, TENANT_TABLE } = process.env;
 const logger = new Logger({ serviceName: SERVICE_NAME });
-const client = new DynamoDBClient();
-const docClient = DynamoDBDocumentClient.from(client);
 
 const lambdaHandler = async (event, context) => {
-  if (event.triggerSource !== 'CustomMessage_AdminCreateUser') {
+  if (
+    event.triggerSource !== 'CustomMessage_SignUp' &&
+    event.triggerSource !== 'CustomMessage_AdminCreateUser'
+  ) {
     return event;
   }
 
@@ -24,7 +24,6 @@ const lambdaHandler = async (event, context) => {
   const expireAt = Math.floor(
     (new Date().getTime() + 7 * 24 * 60 * 60 * 1000) / 1000
   );
-  event.clientMetadata = { token, expireAt };
 
   try {
     const tenantId = event.request.userAttributes['custom:tenantId'];
@@ -46,55 +45,20 @@ const lambdaHandler = async (event, context) => {
       token
     );
 
-    const ses = new SESClient({
-      credentials: {
-        accessKeyId: context.assumeRole.accessKeyId,
-        secretAccessKey: context.assumeRole.secretAccessKey,
-        sessionToken: context.assumeRole.sessionToken,
-      },
-    });
-    await ses.send(
-      new SendEmailCommand({
-        Source: `noreply@${ROOT_DOMAIN}`,
-        Destination: {
-          ToAddresses: [event.request.userAttributes.email],
-        },
-        Message: {
-          Subject: {
-            Charset: 'UTF-8',
-            Data: 'Shobo account - confirm your email address',
-          },
-          Body: {
-            Html: {
-              Charset: 'UTF-8',
-              Data: `<p>Please confirm your email address by clicking <a href="https://auth.${ROOT_DOMAIN}/confirm-signup?t=${token}">here</a>.</p>`,
-            },
-          },
-        },
-      })
-    );
-    logger.info(
-      `[${tenantId}] - sent confirmation email to user [${event.userName}]`
-    );
+    const message = `Welcome! Please confirm your email address by clicking <a href="https://auth.${ROOT_DOMAIN}/confirm-signup?t=${token}&c=${event.request.codeParameter}">here</a>.`;
+    event.response.smsMessage = message;
+    event.response.emailMessage = message;
+    event.response.emailSubject = 'Welcome to Shobogonzo';
 
-    return event;
+    logger.info(`[${tenantId}] - sending custom message`, event.response);
   } catch (error) {
     logger.critical('Failed to send confirmation email', error);
     throw error;
+  } finally {
+    return event;
   }
 };
 
 module.exports.handler = middy()
-  .use(
-    sts({
-      setToContext: true,
-      fetchData: {
-        assumeRole: {
-          RoleArn: SERVICE_ROLE_ARN,
-          RoleSessionName: `${SERVICE_NAME}-sendConfirmationEmail`,
-        },
-      },
-    })
-  )
   .use(injectLambdaContext(logger))
   .handler(lambdaHandler);

@@ -66,7 +66,7 @@ const we_invoke_createCognitoUser = async (
   return await handler(event, context);
 };
 
-const we_invoke_registerUserSignup = async (user, tenantId) => {
+const we_invoke_registerUserSignup = async (user, role, tenantId) => {
   const { username, firstName, lastName, email } = user;
   const handler = require('../../functions/register-user-signup.js').handler;
   const context = {};
@@ -87,6 +87,7 @@ const we_invoke_registerUserSignup = async (user, tenantId) => {
         email: email,
         'custom:tenantId': tenantId,
       },
+      clientMetadata: { role },
     },
     response: {},
   };

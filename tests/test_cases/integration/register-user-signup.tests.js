@@ -12,7 +12,8 @@ describe('When registerUserSignup runs', () => {
     tenant = await given.an_existing_tenant(chance.guid(), chance.company());
     user = given.a_random_user();
     user.username = 'test-user-beepboop';
-    await when.we_invoke_registerUserSignup(user, tenant.id);
+    role = 'TENANT_ADMIN';
+    await when.we_invoke_registerUserSignup(user, role, tenant.id);
   });
 
   afterAll(async () => {
@@ -33,6 +34,7 @@ describe('When registerUserSignup runs', () => {
       firstName: user.firstName,
       lastName: user.lastName,
       email: user.email,
+      role: role,
       status: 'PENDING',
       createdAt: expect.stringMatching(
         /\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d(?:\.\d+)?Z?/g

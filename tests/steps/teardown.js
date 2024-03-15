@@ -2,6 +2,7 @@ const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 const {
   DeleteCommand,
   DynamoDBDocumentClient,
+  ScanCommand,
 } = require('@aws-sdk/lib-dynamodb');
 const ddbClient = new DynamoDBClient();
 const docClient = DynamoDBDocumentClient.from(ddbClient);
@@ -19,7 +20,7 @@ const a_tenant = async (tenant) => {
       TableName: TENANT_TABLE,
       Key: {
         PK: `TENANT#${tenant.id}`,
-        SK: `DETAILS#${tenant.name}`,
+        SK: `DETAILS`,
       },
     })
   );
@@ -40,8 +41,29 @@ const a_user = async (username, tenantId, deleteFromCognito) => {
       },
     })
   );
-  console.log(`[${username}] - user deleted from tenant [${tenantId}]`);
-
+  const tokenResp = await docClient.send(
+    new ScanCommand({
+      TableName: TENANT_TABLE,
+      FilterExpression: 'SK = :sk',
+      ExpressionAttributeValues: {
+        ':sk': `TENANT#${tenantId}#USER#${username}`,
+      },
+    })
+  );
+  const token = tokenResp.Items[0];
+  if (token) {
+    console.log(`[${username}] - deleting user token [${token.PK}]`);
+    await docClient.send(
+      new DeleteCommand({
+        TableName: TENANT_TABLE,
+        Key: {
+          PK: token.PK,
+          SK: token.SK,
+        },
+      })
+    );
+    console.log(`[${username}] - user deleted from tenant [${tenantId}]`);
+  }
   if (deleteFromCognito) {
     console.log(
       `[${username}] - deleting user from user pool [${USER_POOL_ID}]`

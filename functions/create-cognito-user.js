@@ -36,6 +36,7 @@ const lambdaHandler = async (event) => {
           { Name: 'family_name', Value: lastName },
           { Name: 'custom:tenantId', Value: tenantId },
         ],
+        ClientMetadata: { role },
       })
     );
     logger.info(`[${email}] - user has signed up [${username}]`);
@@ -58,7 +59,7 @@ const lambdaHandler = async (event) => {
       tenantId,
     };
   } catch (error) {
-    logger.error(`failed to sign up [${username}] in group [${role}]`);
+    logger.critical(`failed to sign up [${username}] in group [${role}]`);
     throw error;
   }
 };
