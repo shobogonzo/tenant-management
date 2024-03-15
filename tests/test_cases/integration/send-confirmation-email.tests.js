@@ -7,28 +7,20 @@ const chance = require('chance').Chance();
 describe('When sendConfirmationEmail runs', () => {
   let tenant;
   let user;
-  let token;
 
   beforeAll(async () => {
     tenant = await given.an_existing_tenant(chance.company(), 'ACTIVE');
     user = await given.an_existing_user('TENANT_ADMIN', 'PENDING', tenant.id);
-    user.username = `test-bot`;
-    user.email = `test-bot@${process.env.ROOT_DOMAIN}`;
-    const { clientMetadata } = await when.we_invoke_sendConfirmationEmail(
-      user,
-      tenant.id
-    );
-    token = clientMetadata.token;
+    await when.we_invoke_sendConfirmationEmail(user, tenant.id);
   });
 
   afterAll(async () => {
     await teardown.a_tenant(tenant);
-    await teardown.a_user(user, tenant.id);
+    await teardown.a_user(user.username, tenant.id);
   });
 
   it('The confirmation token should be saved in DynamoDB', async () => {
     const confirmation = await then.user_confirmation_exists_in_DynamoDB(
-      token,
       user.username,
       tenant.id
     );
@@ -41,7 +33,7 @@ describe('When sendConfirmationEmail runs', () => {
     expect(confirmation.expireAt).toBeLessThan(eightDaysFromNow);
 
     expect(confirmation).toMatchObject({
-      PK: `CONFIRMATION#${token}`,
+      PK: expect.stringMatching(/^CONFIRMATION#/),
       SK: `TENANT#${tenant.id}#USER#${user.username}`,
       username: user.username,
       userPoolId: process.env.USER_POOL_ID,

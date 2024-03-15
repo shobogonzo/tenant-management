@@ -38,29 +38,43 @@ const { SERVICE_NAME, TENANT_TABLE } = process.env;
 const logger = new Logger({ serviceName: SERVICE_NAME });
 
 const lambdaHandler = async (event) => {
-  if (event.triggerSource !== 'PreSignUp_AdminCreateUser') {
+  if (
+    event.triggerSource !== 'PreSignUp_SignUp' &&
+    event.triggerSource !== 'PreSignUp_AdminCreateUser'
+  ) {
     return event;
   }
 
-  const tenantId = event.request.userAttributes['custom:tenantId'];
-  const result = await docClient.send(
-    new PutCommand({
-      TableName: TENANT_TABLE,
-      Item: {
-        PK: `TENANT#${tenantId}`,
-        SK: `USER#${event.userName}`,
-        username: event.userName,
-        firstName: event.request.userAttributes['given_name'],
-        lastName: event.request.userAttributes['family_name'],
-        email: event.request.userAttributes['email'],
-        status: 'PENDING',
-        createdAt: new Date().toISOString(),
-      },
-    })
-  );
-  logger.info(result);
+  if (!event.request.clientMetadata?.role) {
+    throw new Error('user role is required');
+  }
 
-  return event;
+  const tenantId = event.request.userAttributes['custom:tenantId'];
+  const username = event.userName;
+
+  try {
+    await docClient.send(
+      new PutCommand({
+        TableName: TENANT_TABLE,
+        Item: {
+          PK: `TENANT#${tenantId}`,
+          SK: `USER#${username}`,
+          username: username,
+          firstName: event.request.userAttributes['given_name'],
+          lastName: event.request.userAttributes['family_name'],
+          email: event.request.userAttributes['email'],
+          role: event.request.clientMetadata.role,
+          status: 'PENDING',
+          createdAt: new Date().toISOString(),
+        },
+      })
+    );
+  } catch (error) {
+    logger.critical('Failed to save user record', error);
+    throw error;
+  } finally {
+    return event;
+  }
 };
 
 module.exports.handler = middy()

@@ -33,14 +33,8 @@ describe('When a sysadmin registers a tenant', () => {
   });
 
   afterAll(async () => {
-    if (tenant?.id) {
-      await teardown.a_tenant(tenant);
-    }
-
-    if (tenantAdmin?.username) {
-      await teardown.a_user(tenantAdmin.username, tenant.id, true);
-    }
-
+    await teardown.a_tenant(tenant);
+    await teardown.a_user(tenantAdmin.username, tenant.id, true);
     await teardown.a_user(sysadmin.username, process.env.SERVICE_NAME, true);
   });
 

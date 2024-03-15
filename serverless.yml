@@ -81,6 +81,13 @@ functions:
     handler: functions/send-confirmation-email.handler
     environment:
       TENANT_TABLE: !Ref TenantTable
+    iamRoleStatements:
+      - Effect: Allow
+        Action: dynamodb:PutItem
+        Resource: !GetAtt TenantTable.Arn
+      - Effect: Allow
+        Action: sts:AssumeRole
+        Resource: ${self:custom.serviceRoleArn}
 
   confirmUserSignup:
     handler: functions/confirm-user-signup.handler
@@ -119,6 +126,12 @@ resources:
           CustomMessage: !GetAtt SendConfirmationEmailLambdaFunction.Arn
           PostConfirmation: !GetAtt ConfirmUserSignupLambdaFunction.Arn
 
+    UserPoolCustomDomain:
+      Type: AWS::Cognito::UserPoolDomain
+      Properties:
+        Domain: ${self:custom.name}-${self:custom.stage}
+        UserPoolId: !Ref UserPool
+
     UserPoolInvokeRegisterUserSignupLambdaPermission:
       Type: AWS::Lambda::Permission
       Properties:
@@ -153,6 +166,7 @@ resources:
           - ALLOW_USER_SRP_AUTH
           - ALLOW_REFRESH_TOKEN_AUTH
           - ALLOW_USER_PASSWORD_AUTH
+          - ALLOW_ADMIN_USER_PASSWORD_AUTH
         PreventUserExistenceErrors: ENABLED
 
     IdentityPool:
